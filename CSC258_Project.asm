@@ -10,8 +10,8 @@ addi $t0 $zero 1 # Temporary testing
 la $t1 State
 la $t2 Board
 
+
 la $a0, Add
-la $a1, Board
 jal Access_All
 
 
@@ -33,13 +33,14 @@ syscall
 Access_All:         # Calls the given function on each element on the board. The function should take
                     # at most a single argument that is the location of the element it is being
                     # called on. Argument should come in $a0
+                    # Elements are called from bottom to top
 addi $sp, $sp, -4                    # Store Return Address on the stack
 sw $ra, 0($sp)
 
-addi $t0, $zero, 0      # Initialize the loop varable
-addi $t1, $zero, 16   # Set Stop 
+addi $t0, $zero, 15      # Initialize the loop varable
+addi $t1, $zero, -1   # Set Stop 
 Access_All_Loop:
-bge $t0, $t1, End_Access_All       # Begin Loop
+ble $t0, $t1, End_Access_All       # Begin Loop
 sll $t2, $t0, 4        # Adjust position for the function
 la $t3, Board
 
@@ -74,7 +75,7 @@ addi $sp, $sp, 4
 lw $t0, 0($sp) 
 addi $sp, $sp, 4
 
-addi $t0, $t0, 1           # Increment loop variable
+addi $t0, $t0, -1           # Increment loop variable
 j Access_All_Loop               # Loop
                     
 
