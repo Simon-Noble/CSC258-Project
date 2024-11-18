@@ -30,18 +30,22 @@ syscall
 
 Access_All:         # Calls the given function on each element on the board. The function should take
                     # at most a single argument that is the location of the element it is being
-                    # called on.
+                    # called on. Argument should come in $a0
 addi $sp, $sp, -4                    # Store Return Address on the stack
 sw $ra, 0($sp)
 
-                    # Initialize the loop varable
-                    # Set Stop Variable
-                    # Begin Loop
-                    # Adjust position for the function
-                    # Store Varables
+addi $t0, $zero, 0      # Initialize the loop varable
+addi $t1, $zero, 16                 # Set Stop Variable
+bge $t0, $t1, End_Access_All       # Begin Loop
+sll $t2, $t0, 16        # Adjust position for the function
+la $t3, Board
+add $a1, $t2, $t3       # Get Parameter for the function             
+# Store Varables
                     # Call function
                     # Load Variables
-                    # 
+                    # Increment loop variable
+                    # Loop
+                    
 
 End_Access_All:
 lw $ra, 0($sp)      # Read return address from the stack
