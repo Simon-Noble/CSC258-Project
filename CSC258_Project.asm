@@ -2,6 +2,33 @@
 Board: .half 0:128      # array of 128 half words (8 bits) used for storing the board. X,Y position 0,0 
                         # is element 0. Y incemets every 8 words (8*8 = 64 bits). The top left part of the 
                         # board is 0,0
+                        
+                        # Piece Reference:  (RGB order and NSEW order with Y replacing G)
+                        #   0 - Empty space
+                        #   1 - Red Virus
+                        #   2 - Yellow Virus
+                        #   3 - Blue virus
+                        
+                        #   4 - Red Pill No connection
+                        #   5 - Red Pill Connected Up
+                        #   6 - Red Pill Connected Left
+                        #   7 - Red Pill Connected Down
+                        #   8 - Red Pill Connected Right
+                        
+                        #   9 - Yellow Pill No connection
+                        #   10 - Yellow Pill Connected Up
+                        #   11 - Yellow Pill Connected Left
+                        #   12 - Yellow Pill Connected Down
+                        #   13 - Yellow Pill Connected Right
+                        
+                        #   14 - Blue Pill No connection
+                        #   15 - Blue Pill Connected Up
+                        #   16 - Blue Pill Connected Left
+                        #   17 - Blue Pill Connected Down
+                        #   18 - Blue Pill Connected Right
+                        
+                        #   Higher Values should not be expected 
+                        
 State: .byte 0:1        # This byte tracks whether the next check should be for deleting pieces(1), 
                         # gravity movement (2), player controled movement (0), generate a new piece (4)
 .text
