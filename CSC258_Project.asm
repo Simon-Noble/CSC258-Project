@@ -42,17 +42,21 @@ addi $t0 $zero 1 # Temporary testing
 la $t1 Board
 addi $t0, $zero, 5
 
-#sll $t2, $t0, 1     # Update the offset to be correct
+sll $t2, $t0, 1     # Update the offset to be correct
 
-#add $t2, $t2, $t1 
-#addi $t3, $zero, 4
-#sh $t3, 0($t1)
-#sh $t3 , 0($t2)
-#la $a0, Generate_Piece
-#jal Access_All
-#Start_Main_Loop:
-#la $a0, Gravity
-#jal Access_All
+add $t2, $t2, $t1 
+addi $t3, $zero, 2
+addi $t4, $t3, 2
+sh $t4, 0($t1)
+sh $t3 , 12($t2)
+jal Generate_Piece
+
+
+Start_Main_Loop:
+la $a0, Gravity
+jal Access_All
+la $a0, Gravity
+jal Access_All
 #j Start_Main_Loop
 
 
@@ -410,12 +414,13 @@ li $a0 , 0
 li $a1 , 6
 syscall
 la $t3, Board           # Load positions to write the pieces to
-addi $t3, $t3, 6
-addi $t4, $t3, 2
+addi $t3, $t3, 6        # Left Position
+addi $t4, $t3, 2        # Right Position
 sh $a0, 8($t1)  
+j Zero
 
-add $t0, $zero, $zero     # Go to the space where a pice is made. The order is the same as the
-beq $a0, $t0, Zero    # grapic in the assignment 
+add $t0, $zero, $zero       # Go to the space where a pice is made. The order is the same as the
+beq $a0, $t0, Zero          # grapic in the assignment 
 addi $t0, $zero, 1
 beq $a0, $t0, One
 addi $t0, $zero, 2
@@ -426,16 +431,44 @@ addi $t0, $zero, 4
 beq $a0, $t0, Four
 addi $t0, $zero, 5
 beq $a0, $t0, Five
+# Piece Reference:  (RGB order and NSEW order with Y replacing G)
+                        #   0 - Empty space
+                        #   1 - Red Virus
+                        #   2 - Yellow Virus
+                        #   3 - Blue virus
+                        
+                        #   4 - Red Pill No connection
+                        #   5 - Red Pill Connected Up
+                        #   6 - Red Pill Connected Left
+                        #   7 - Red Pill Connected Down
+                        #   8 - Red Pill Connected Right
+                        
+                        #   9 - Yellow Pill No connection
+                        #   10 - Yellow Pill Connected Up
+                        #   11 - Yellow Pill Connected Left
+                        #   12 - Yellow Pill Connected Down
+                        #   13 - Yellow Pill Connected Right
+                        
+                        #   14 - Blue Pill No connection
+                        #   15 - Blue Pill Connected Up
+                        #   16 - Blue Pill Connected Left
+                        #   17 - Blue Pill Connected Down
+                        #   18 - Blue Pill Connected Right
+                        
+                        #   Higher Values should not be expected 
 Zero:
-addi $t0, $zero, 1
-#sh, $t0
+addi $t0, $zero, 8
+addi $t1, $zero, 6
+sh, $t0, 0($t3)
+sh, $t1, 0($t4)
+J Exit_Piece_Generation
 One:
 Two:
 Three:
 Four:
 Five:
 
-
+Exit_Piece_Generation:
 jr $ra  
 
 
@@ -607,7 +640,7 @@ addi $t2, $zero, 18
 beq $t0, $t2, Gravity_Left
 j Shift_Down
 # If the value is 6, 11, 16, check the position to the right and down. If it is >0, return
-Gravity_Right:
+Gravity_Left:
 addi $t5, $zero, 1
 sll $t5, $t5, 4
 addi $t5,$t5, 2
@@ -616,7 +649,7 @@ lh $t4, 0($t3)      # $t4 is the value we care about
 bgtz $t4, Gravity_Return
 j Shift_Down
 # If the value is 8, 13, 18, check the value at the position tot he left and down, if >0, return
-Gravity_Left:
+Gravity_Right:
 addi $t5, $zero, 1
 sll $t5, $t5, 4
 addi $t6, $zero, 2
