@@ -29,27 +29,29 @@ Board: .half 0:128      # array of 128 half words (8 bits) used for storing the 
                         
                         #   Higher Values should not be expected 
                         
-State: .byte 0:1        # This byte tracks whether the next check should be for deleting pieces(1), 
-                        # gravity movement (2), player controled movement (0), generate a new piece (4)
+State: .byte 0:1        # This byte tracks whether the next check should be for player controled movement (0),
+                        # deleting pieces(1), gravity movement (2),  generate a new piece (3)
 .text
 main:
 addi $t0 $zero 1 # Temporary testing
 la $t1 Board
-addi $t0, $zero, 1
+addi $t0, $zero, 5
 
-sll $t2, $t0, 4     # Update the offset to be correct
+sll $t2, $t0, 1     # Update the offset to be correct
 
 add $t2, $t2, $t1 
 addi $t3, $zero, 4
 sh $t3, 0($t1)
 sh $t3 , 0($t2)
 
+Start_Main_Loop:
 la $a0, Gravity
 jal Access_All
-
+j Start_Main_Loop
 
 
 # ========= Plans For The Main Loop =======
+
 
 # Initialize
 # Start of Loop / Delay?
@@ -63,6 +65,14 @@ jal Access_All
 Exit:
 li $v0 , 10             # Exit
 syscall
+
+
+
+Movement_Determiner:    # Reads the state and determines what function should be called
+                        # Either calling gravity, player control, clearing rows, or 
+                        # generating a new piece.
+
+
 
 Access_All:         # Calls the given function on each element on the board. The function should take
                     # at most a single argument that is the location of the element it is being
