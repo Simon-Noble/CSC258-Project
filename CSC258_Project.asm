@@ -41,13 +41,14 @@ sll $t2, $t0, 1     # Update the offset to be correct
 
 add $t2, $t2, $t1 
 addi $t3, $zero, 4
-sh $t3, 0($t1)
-sh $t3 , 0($t2)
-
-Start_Main_Loop:
-la $a0, Gravity
+#sh $t3, 0($t1)
+#sh $t3 , 0($t2)
+la $a0, Generate_Piece
 jal Access_All
-j Start_Main_Loop
+#Start_Main_Loop:
+#la $a0, Gravity
+#jal Access_All
+#j Start_Main_Loop
 
 
 # ========= Plans For The Main Loop =======
@@ -72,6 +73,40 @@ Movement_Determiner:    # Reads the state and determines what function should be
                         # Either calling gravity, player control, clearing rows, or 
                         # generating a new piece.
 
+Generate_Piece:
+
+li $v0 , 42
+li $a0 , 0
+li $a1 , 6
+syscall
+la $t3, Board           # Load positions to write the pieces to
+addi $t3, $t3, 6
+addi $t4, $t3, 2
+sh $a0, 8($t1)  
+
+add $t0, $zero, $zero     # Go to the space where a pice is made. The order is the same as the
+beq $a0, $t0, Zero    # grapic in the assignment 
+addi $t0, $zero, 1
+beq $a0, $t0, One
+addi $t0, $zero, 2
+beq $a0, $t0, Two
+addi $t0, $zero, 3
+beq $a0, $t0, Three
+addi $t0, $zero, 4
+beq $a0, $t0, Four
+addi $t0, $zero, 5
+beq $a0, $t0, Five
+Zero:
+addi $t0, $zero, 
+sh, $t0
+One:
+Two:
+Three:
+Four:
+Five:
+
+
+jr $ra  
 
 
 Access_All:         # Calls the given function on each element on the board. The function should take
