@@ -1,374 +1,9 @@
 .data
 dummy_var: .space 500000   # Reserve 50000 bytes for the dummy variable (adjust size as needed)
 displayaddress:     .word       0x10008000
-Board: .half 0:128      # array of 128 half words (8 bits) used for storing the board. X,Y position 0,0 
-                        # is element 0. Y incemets every 8 words (8*8 = 64 bits). The top left part of the 
-                        # board is 0,0
-                        
-                        # Piece Reference:  (RGB order and NSEW order with Y replacing G)
-                        #   0 - Empty space
-                        #   1 - Red Virus
-                        #   2 - Yellow Virus
-                        #   3 - Blue virus
-                        
-                        #   4 - Red Pill No connection
-                        #   5 - Red Pill Connected Up
-                        #   6 - Red Pill Connected Left
-                        #   7 - Red Pill Connected Down
-                        #   8 - Red Pill Connected Right
-                        
-                        #   9 - Yellow Pill No connection
-                        #   10 - Yellow Pill Connected Up
-                        #   11 - Yellow Pill Connected Left
-                        #   12 - Yellow Pill Connected Down
-                        #   13 - Yellow Pill Connected Right
-                        
-                        #   14 - Blue Pill No connection
-                        #   15 - Blue Pill Connected Up
-                        #   16 - Blue Pill Connected Left
-                        #   17 - Blue Pill Connected Down
-                        #   18 - Blue Pill Connected Right
-                        
-                        #   Higher Values should not be expected 
-                        
-
-
-State: .byte 0:1        # This byte tracks whether the next check should be for player controled movement (0),
-                        # deleting pieces(1), gravity movement (2),  generate a new piece (3)
 capsule_x:          .word       0
 capsule_y:          .word       0
 .text
-main:
-addi $t0 $zero 1 # Temporary testing
-la $t1 Board
-addi $t0, $zero, 5
-
-sll $t2, $t0, 1     # Update the offset to be correct
-
-add $t2, $t2, $t1 
-addi $t3, $zero, 2
-addi $t4, $t3, 2
-sh $t4, 0($t1)
-sh $t4 , 16($t2)
-jal Generate_Piece
-
-
-Start_Main_Loop:
-
-# ========= Plans For The Main Loop =======
-li $v0 , 32
-li $a0 , 100
-syscall
-
-# Initialize
-# Start of Loop / Delay?
-# Get Player Input
-la $a0, Gravity
-jal Access_All  # Update Piece Positions
-# Check if the game is over and exit
-jal Draw_Graphics # Draw the new board
-# Play secion of Music?
-# Restart Loop
-# Start a new game?
-j Start_Main_Loop
-
-Exit:
-li $v0 , 10             # Exit
-syscall
-
-
-
-Movement_Determiner:    # Reads the state and determines what function should be called
-                        # Either calling gravity, player control, clearing rows, or 
-                        # generating a new piece.
-
-Generate_Piece:
-la $t3, Board           # Load positions to write the pieces to
-addi $t3, $t3, 6        # Left Position
-addi $t4, $t3, 2        # Right Position
-
-
-
-li $v0 , 42
-li $a0 , 0
-li $a1 , 6
-syscall
-
-sh $a0, 8($t1)  
-
-
-add $t0, $zero, $zero       # Go to the space where a pice is made. The order is the same as the
-beq $a0, $t0, Zero          # grapic in the assignment 
-addi $t0, $zero, 1
-beq $a0, $t0, One
-addi $t0, $zero, 2
-beq $a0, $t0, Two
-addi $t0, $zero, 3
-beq $a0, $t0, Three
-addi $t0, $zero, 4
-beq $a0, $t0, Four
-addi $t0, $zero, 5
-beq $a0, $t0, Five
-# Piece Reference:  (RGB order and NSEW order with Y replacing G)
-                        #   0 - Empty space
-                        #   1 - Red Virus
-                        #   2 - Yellow Virus
-                        #   3 - Blue virus
-                        
-                        #   4 - Red Pill No connection
-                        #   5 - Red Pill Connected Up
-                        #   6 - Red Pill Connected Left
-                        #   7 - Red Pill Connected Down
-                        #   8 - Red Pill Connected Right
-                        
-                        #   9 - Yellow Pill No connection
-                        #   10 - Yellow Pill Connected Up
-                        #   11 - Yellow Pill Connected Left
-                        #   12 - Yellow Pill Connected Down
-                        #   13 - Yellow Pill Connected Right
-                        
-                        #   14 - Blue Pill No connection
-                        #   15 - Blue Pill Connected Up
-                        #   16 - Blue Pill Connected Left
-                        #   17 - Blue Pill Connected Down
-                        #   18 - Blue Pill Connected Right
-                        
-                        #   Higher Values should not be expected 
-Zero:
-addi $t0, $zero, 8
-addi $t1, $zero, 6
-J Set_Piece
-One:
-addi $t0, $zero, 18
-addi $t1, $zero, 16
-J Set_Piece
-Two:
-addi $t0, $zero, 13
-addi $t1, $zero, 11
-J Set_Piece
-Three:
-addi $t0, $zero, 8
-addi $t1, $zero, 16
-J Set_Piece
-Four:
-addi $t0, $zero, 8
-addi $t1, $zero, 11
-J Set_Piece
-Five:
-addi $t0, $zero, 18
-addi $t1, $zero, 11
-J Set_Piece
-Set_Piece:
-sh, $t0, 0($t3)
-sh, $t1, 0($t4)
-Exit_Piece_Generation:
-jr $ra  
-
-
-Access_All:         # Calls the given function on each element on the board. The function should take
-                    # at most a single argument that is the location of the element it is being
-                    # called on. Argument should come in $a0
-                    # Elements are called from bottom to top
-addi $sp, $sp, -4                    # Store Return Address on the stack
-sw $ra, 0($sp)
-
-addi $t0, $zero, 15      # Initialize the loop varable
-addi $t1, $zero, -1   # Set Stop 
-Access_All_Loop:
-ble $t0, $t1, End_Access_All       # Begin Loop
-sll $t2, $t0, 4        # Adjust position for the function
-la $t3, Board
-
-add $a1, $t2, $t3       # Set Parameter for the function     
-
-# Store Varables
-addi $sp, $sp, -4 # Store all important registers
-
-sw $t0, 0($sp)
-addi $sp, $sp, -4
-sw $t1, 0($sp)
-addi $sp, $sp, -4
-sw $t2, 0($sp)
-addi $sp, $sp, -4
-sw $t3, 0($sp)
-
-addi $sp, $sp, -4
-sw $a0, 0($sp)
-
-add $a3, $t0, $zero
-jal Access_Row      # Call function
-                    
-                    # Load Variables
-lw $a0, 0($sp) 
-addi $sp, $sp, 4
-lw $t3, 0($sp) 
-addi $sp, $sp, 4
-lw $t2, 0($sp) 
-addi $sp, $sp, 4
-lw $t1, 0($sp) 
-addi $sp, $sp, 4
-lw $t0, 0($sp) 
-addi $sp, $sp, 4
-
-addi $t0, $t0, -1           # Increment loop variable
-j Access_All_Loop               # Loop
-                    
-
-End_Access_All:
-lw $ra, 0($sp)      # Read return address from the stack
-addi $sp, $sp, 4
-jr $ra              # Exit function
-
-
-Access_Row:         # Calls the function given on each elemen in the given row
-                    # $a1 should be the address of the row to call a function on,
-                    # and $a0 should be the addres of the function to call. The function should take 
-                    # a single argument from $a0, which is the position to call the function on
-addi $sp, $sp, -4                    # Store Return Address on the stack
-sw $ra, 0($sp)
-
-addi $t8, $a1, 0    # Load the board position into t8
-addi $t0 $zero 0    # Set loop variable
-addi $t1 $zero 8                # Set Stop Vairable
-Access_Row_Loop_Start:
-bge $t0, $t1, Access_Row_Exit   # Begin loop and check loop condition
-sll $t2, $t0, 1     # Update the offset to be correct
-add $t2, $t2, $t8   # Set position to read
-
-addi $a1, $t2, 0
-
-addi $sp, $sp, -4 # Store all important registers
-sw $t0, 0($sp)
-addi $sp, $sp, -4
-sw $t1, 0($sp)
-addi $sp, $sp, -4
-sw $t2, 0($sp)
-addi $sp, $sp, -4
-sw $t3, 0($sp)
-addi $sp, $sp, -4
-sw $t8, 0($sp)
-addi $sp, $sp, -4
-sw $a0, 0($sp)
-addi $sp, $sp, -4
-sw $a1, 0($sp)
-addi $sp, $sp, -4
-sw $a3, 0($sp)
-
-
-add $a2, $t0, $zero
-jalr $a0
-#lh $t3, 0($t2)      # Read value from memory
-#addi $t3, $t3, 1    # Increment value in memory
-#sh $t3, 0($t2)      # Save to memory
-
-lw $a3, 0($sp) 
-addi $sp, $sp, 4
-lw $a1, 0($sp)      # Load all registers
-addi $sp, $sp, 4 
-lw $a0, 0($sp) 
-addi $sp, $sp, 4
-lw $t8, 0($sp) 
-addi $sp, $sp, 4
-lw $t3, 0($sp) 
-addi $sp, $sp, 4
-lw $t2, 0($sp) 
-addi $sp, $sp, 4
-lw $t1, 0($sp) 
-addi $sp, $sp, 4
-lw $t0, 0($sp) 
-addi $sp, $sp, 4
-
-addi $t0, $t0, 1    #Increment Loop Variable
-j Access_Row_Loop_Start # Restart loop
-Access_Row_Exit:
-lw $ra, 0($sp)      # Read return address from the stack
-addi $sp, $sp, 4
-jr $ra # Exit function
-
-Add:
-# Add one to the value in the memory address in $a1
-
-la $t0, Board
-sub $t1, $a1, $t0   
-addi $t2, $zero, 0xf0 # Does something different to the bottom row
-bge $t1, $t2, Skip
-
-
-lh $t3, 0($a1) 
-addi $t3, $t3, 3
-sh $t3, 0($a1) 
-Skip:
-jr $ra
-
-
-Gravity:                # Single argument $a1. Determine if the piece at the position should move down
-                       # and move it if it should be.
-addi $sp, $sp, -4                    # Store Return Address on the stack
-sw $ra, 0($sp)
-
-la $t0, Board
-sub $t1, $a1, $t0   
-addi $t2, $zero, 0xf0   # Check if we are in the bottom row, if so, return
-bge $t1, $t2, Gravity_Return
-
-
-
-
-lh $t0, 0($a1)              # $t0 is the value at the position we care about
-addi $t1, $zero, 3
-
-ble $t0, $t1, Gravity_Return    # Check if the value at the position is <= 3, if so, return
-addi $t8, $zero, 1
-sll $t8, $t8, 4
-add $t8, $t8, $a1           # $t8 is the position of the piece below
-lh $t9, 0($t8)              # $t9 is The value of the position below
-bgtz $t9, Gravity_Return    # Check if the value at the position below it is > 0, if so, return.
-# Check if the value is 6, 8, 11, 13, 16, 18
-addi $t2, $zero, 6
-beq $t0, $t2, Gravity_Right
-addi $t2, $zero, 11
-beq $t0, $t2, Gravity_Right
-addi $t2, $zero, 16
-beq $t0, $t2, Gravity_Right
-addi $t2, $zero, 8
-beq $t0, $t2, Gravity_Left
-addi $t2, $zero, 13
-beq $t0, $t2, Gravity_Left
-addi $t2, $zero, 18
-beq $t0, $t2, Gravity_Left
-j Shift_Down
-# If the value is 6, 11, 16, check the position to the right and down. If it is >0, return
-Gravity_Left:
-addi $t5, $zero, 1
-sll $t5, $t5, 4
-addi $t5,$t5, 2
-add $t3, $t5, $a1 # $t3 is the position we care about
-lh $t4, 0($t3)      # $t4 is the value we care about
-
-bgtz $t4, Gravity_Return
-j Shift_Down_Double
-# If the value is 8, 13, 18, check the value at the position tot he left and down, if >0, return
-Gravity_Right:
-
-j Gravity_Return
-Shift_Down_Double:
-lh $t1, 2($a1)
-sh $t0, 0($t8)      # Set the piece at the position below to the same as the current piece.
-sh $t1, 2($t8)
-sh $zero, 0($a1) 
-sh $zero, 2($a1)
-j Gravity_Return
-Shift_Down:
-sh $t0, 0($t8)      # Set the piece at the position below to the same as the current piece.
-sh $zero, 0($a1)       # Set the piece at the current position to 0
-# Return
-Gravity_Return:
-lw $ra, 0($sp)      # Read return address from the stack
-addi $sp, $sp, 4
-jr $ra              # Exit function
-
-
-
 # ...
 ########################################
 ### First, I'll draw the square grid ###
@@ -385,7 +20,6 @@ li $s3, 0xde126a # magenta, RGB 222, 18, 106
 li $s4, 0xe6a015 # yellow, RGB 230, 160, 21
 li $s5, 0x14bab7 # cyan, 20, 186, 183
 li $s6, 0xe3b19a # beige, RGB 227, 177, 154
-li $s6, 0x9c502d # brown, RGB 156, 80, 45
 
 # Set up the parameters for the rectangle drawing function
 add $a0, $zero, $zero          # Set the X coordinate for the top left corner of the rectangle (in pixels)
@@ -769,8 +403,7 @@ add $t8, $zero, $s1
 li $t7, 0
 
 jal i_vertical_start
-i_wall_end:
-j end_background
+
 # Creating the various wall outside the jar
 i_vertical_start: 
 jal draw_rect
@@ -1197,69 +830,8 @@ addi $a1, $t7, 55
 j h_lrmouth_start
 h_lrmouth_end:
 
-
-
-############################################## Inside Jar ##################################################################
-
-la $a0, Draw_Inside
-jal Access_All
 j end_background
-Draw_Inside:
-            # $a1 is a reference to the pice to be converted
-            # $a2 is the x
-            # $a3 is the y (bottom is higher)
-            
-addi $sp, $sp, -4                    # Store Return Address on the stack
-sw $ra, 0($sp)
-
-add $t5, $a1, $zero
-sll $t0, $a2, 3
-
-
-sll $t3, $a3, 3
-
-addi $a0, $t0, 96
-
-addi $t1, $zero, 72
-add $a1, $t1, $t3
-
-addi $a2, $zero, 8          # Set the width of the rectangle (in pixels)
-addi $a3, $zero, 8          # Set the height of the rectangle (in pixels)
-
-lh $t0, 0($t5)  #Read what piece is in place to t0
-li $t1, 14
-bge $t0, $t1, Blue
-li $t1, 9
-bge $t0, $t1, Yellow
-li $t1, 4
-bge $t0, $t1, Red
-li $t1, 3
-beq $t0, $t1, BlueVirus
-li $t1, 2
-beq $t0, $t1, Yellow_Virus
-li $t1, 1
-beq $t0, $t1, Red_Virus
-li $t8, 0
-j Inside_Pill_Draw_Rect
-BlueVirus:
-Blue:
-add $t8, $zero, $s5
-j Inside_Pill_Draw_Rect
-Yellow_Virus:
-Yellow:
-add $t8, $zero, $s4
-j Inside_Pill_Draw_Rect
-Red_Virus:
-Red:
-add $t8, $zero, $s3
-
-Inside_Pill_Draw_Rect:
-jal draw_rect
-
-lw $ra, 0($sp)      # Read return address from the stack
-addi $sp, $sp, 4
-jr $ra
-            #Comparisons to determine wht to draw
+############################################## Inside Jar ##################################################################
 
 #######################################
 ### Third, I'll addd the filpboards ###
@@ -1298,6 +870,208 @@ add, $t8, $zero, $s2
 
 jal draw_rect
 
+############################################### Score Board Text ################################################### 
+
+#Top Score text position (Actual score is 8 pixels below)
+# X = 16, Y = 48
+add, $t8, $zero, $zero
+# Letter T
+addi $a0, $zero, 17
+addi $a1, $zero, 48
+addi $a2, $zero, 7
+addi $a3, $zero, 1
+jal draw_rect
+addi $a0, $zero, 19
+addi $a1, $zero, 48
+addi $a2, $zero, 2
+addi $a3, $zero, 7
+jal draw_rect
+# Letter O
+addi $a0, $zero, 26
+addi $a1, $zero, 48
+addi $a2, $zero, 4
+addi $a3, $zero, 1
+jal draw_rect
+addi $a0, $zero, 26
+addi $a1, $zero, 54
+addi $a2, $zero, 4
+addi $a3, $zero, 1
+jal draw_rect
+addi $a0, $zero, 25
+addi $a1, $zero, 48
+addi $a2, $zero, 2
+addi $a3, $zero, 7
+jal draw_rect
+addi $a0, $zero, 29
+addi $a1, $zero, 48
+addi $a2, $zero, 1
+addi $a3, $zero, 7
+jal draw_rect
+# Letter P
+addi $a0, $zero, 34
+addi $a1, $zero, 48
+addi $a2, $zero, 4
+addi $a3, $zero, 1
+jal draw_rect
+addi $a0, $zero, 34
+addi $a1, $zero, 51
+addi $a2, $zero, 4
+addi $a3, $zero, 1
+jal draw_rect
+addi $a0, $zero, 32
+addi $a1, $zero, 48
+addi $a2, $zero, 2
+addi $a3, $zero, 7
+jal draw_rect
+addi $a0, $zero, 37
+addi $a1, $zero, 48
+addi $a2, $zero, 1
+addi $a3, $zero, 4
+jal draw_rect
+
+#Score text position (Actual score is 8 pixels below)
+# X = 16, Y = 72
+# Letter S
+addi $a0, $zero, 21
+addi $a1, $zero, 72
+addi $a2, $zero, 1
+addi $a3, $zero, 2
+jal draw_rect
+addi $a0, $zero, 18
+addi $a1, $zero, 72
+addi $a2, $zero, 4
+addi $a3, $zero, 1
+jal draw_rect
+addi $a0, $zero, 18
+addi $a1, $zero, 72
+addi $a2, $zero, 2
+addi $a3, $zero, 4
+jal draw_rect
+addi $a0, $zero, 18
+addi $a1, $zero, 75
+addi $a2, $zero, 4
+addi $a3, $zero, 1
+jal draw_rect
+addi $a0, $zero, 21
+addi $a1, $zero, 75
+addi $a2, $zero, 1
+addi $a3, $zero, 4
+jal draw_rect
+addi $a0, $zero, 18
+addi $a1, $zero, 78
+addi $a2, $zero, 4
+addi $a3, $zero, 1
+jal draw_rect
+addi $a0, $zero, 18
+addi $a1, $zero, 77
+addi $a2, $zero, 1
+addi $a3, $zero, 2
+jal draw_rect
+# Letter C
+addi $a0, $zero, 28
+addi $a1, $zero, 72
+addi $a2, $zero, 1
+addi $a3, $zero, 2
+jal draw_rect
+addi $a0, $zero, 24
+addi $a1, $zero, 72
+addi $a2, $zero, 5
+addi $a3, $zero, 1
+jal draw_rect
+addi $a0, $zero, 24
+addi $a1, $zero, 72
+addi $a2, $zero, 2
+addi $a3, $zero, 7
+jal draw_rect
+addi $a0, $zero, 24
+addi $a1, $zero, 75
+addi $a2, $zero, 1
+addi $a3, $zero, 4
+jal draw_rect
+addi $a0, $zero, 28
+addi $a1, $zero, 77
+addi $a2, $zero, 1
+addi $a3, $zero, 2
+jal draw_rect
+addi $a0, $zero, 24
+addi $a1, $zero, 78
+addi $a2, $zero, 5
+addi $a3, $zero, 1
+jal draw_rect
+# Letter O
+addi $a0, $zero, 32
+addi $a1, $zero, 72
+addi $a2, $zero, 4
+addi $a3, $zero, 1
+jal draw_rect
+addi $a0, $zero, 32
+addi $a1, $zero, 78
+addi $a2, $zero, 5
+addi $a3, $zero, 1
+jal draw_rect
+addi $a0, $zero, 32
+addi $a1, $zero, 72
+addi $a2, $zero, 2
+addi $a3, $zero, 7
+jal draw_rect
+addi $a0, $zero, 36
+addi $a1, $zero, 72
+addi $a2, $zero, 1
+addi $a3, $zero, 7
+jal draw_rect
+# Letter R
+addi $a0, $zero, 42
+addi $a1, $zero, 72
+addi $a2, $zero, 4
+addi $a3, $zero, 1
+jal draw_rect
+addi $a0, $zero, 42
+addi $a1, $zero, 75
+addi $a2, $zero, 4
+addi $a3, $zero, 1
+jal draw_rect
+addi $a0, $zero, 40
+addi $a1, $zero, 72
+addi $a2, $zero, 2
+addi $a3, $zero, 7
+jal draw_rect
+addi $a0, $zero, 45
+addi $a1, $zero, 72
+addi $a2, $zero, 1
+addi $a3, $zero, 4
+jal draw_rect
+addi $a0, $zero, 43
+addi $a1, $zero, 76
+addi $a2, $zero, 1
+addi $a3, $zero, 1
+jal draw_rect
+addi $a0, $zero, 44
+addi $a1, $zero, 77
+addi $a2, $zero, 1
+addi $a3, $zero, 2
+jal draw_rect
+# Letter E
+addi $a0, $zero, 48
+addi $a1, $zero, 72
+addi $a2, $zero, 6
+addi $a3, $zero, 1
+jal draw_rect
+addi $a0, $zero, 48
+addi $a1, $zero, 78
+addi $a2, $zero, 6
+addi $a3, $zero, 1
+jal draw_rect
+addi $a0, $zero, 48
+addi $a1, $zero, 75
+addi $a2, $zero, 4
+addi $a3, $zero, 1
+jal draw_rect
+addi $a0, $zero, 48
+addi $a1, $zero, 72
+addi $a2, $zero, 2
+addi $a3, $zero, 7
+jal draw_rect
+
 ############################################### Second Board #######################################################
 
 addi $a0, $zero, 176         # Set the X coordinate for the top left corner of the rectangle (in pixels)
@@ -1332,16 +1106,151 @@ add, $t8, $zero, $s2
 
 jal draw_rect
 
-j main_jar_start
-
 #######################################
 ### Fourth, I'll add the petri dish ###
 #######################################
+
+addi $a0, $zero, 8         # Set the X coordinate for the top left corner of the rectangle (in pixels)
+addi $a1, $zero, 152         # Set the Y coordinate for the top left corner of the rectangle (in pixels)
+add, $t8, $zero, 0x656066
+add $t7, $zero, $zero
+
+petri_start:
+beq $t8, 0x625edb, change_b
+beq $t8, 0x656066, change_i
+
+change_b:
+add, $t8, $zero, 0x656066
+j draw_petri
+
+change_i:
+add, $t8, $zero, 0x625edb
+j draw_petri
+
+draw_petri:
+addi $a2, $zero, 8         # Set the width of the rectangle (in pixels)
+addi $a3, $zero, 8         # Set the height of the rectangle (in pixels)
+
+addi $a1, $t7, 152 
+beq $a1, 224, petri_end
+beq $a0, 80, new_p_row
+jal draw_rect
+add $a0, $a0, 8
+j petri_start
+
+new_p_row:
+beq $t8, 0x625edb, row_change_b
+beq $t8, 0x656066, row_change_i
+
+row_change_b:
+add, $t8, $zero, 0x656066
+j continue_row
+
+row_change_i:
+add, $t8, $zero, 0x625edb
+j continue_row
+
+continue_row:
+addi $t7, $t7, 8
+addi $a0, $zero, 8 
+j petri_start
+petri_end:
+
+addi $a0, $zero, 7       
+addi $a1, $zero, 152        
+add $t8, $zero, $zero
+addi $a2, $zero, 1
+addi $a3, $zero, 72 
+jal draw_rect 
+addi $a0, $zero, 80      
+addi $a1, $zero, 152        
+addi $a2, $zero, 1
+addi $a3, $zero, 72 
+jal draw_rect 
+addi $a0, $zero, 8       
+addi $a1, $zero, 152        
+addi $a2, $zero, 72
+addi $a3, $zero, 1 
+jal draw_rect 
+addi $a0, $zero, 8       
+addi $a1, $zero, 224        
+addi $a2, $zero, 72
+addi $a3, $zero, 1 
+jal draw_rect 
+
+addi $a0, $zero, 8       
+addi $a1, $zero, 153        
+add $t8, $zero, 0xd1c3d4
+addi $a2, $zero, 1
+addi $a3, $zero, 70 
+jal draw_rect 
+addi $a0, $zero, 79      
+addi $a1, $zero, 153        
+addi $a2, $zero, 1
+addi $a3, $zero, 70 
+jal draw_rect 
+addi $a0, $zero, 8       
+addi $a1, $zero, 153        
+addi $a2, $zero, 72
+addi $a3, $zero, 1 
+jal draw_rect 
+addi $a0, $zero, 8       
+addi $a1, $zero, 223        
+addi $a2, $zero, 72
+addi $a3, $zero, 1 
+jal draw_rect 
+
+addi $a0, $zero, 9       
+addi $a1, $zero, 153        
+add $t8, $zero, 0xd1c3d4
+jal ul_curves
+addi $a0, $zero, 9        
+addi $a1, $zero, 221  
+jal bl_curves
+addi $a0, $zero, 77         
+addi $a1, $zero, 153     
+jal ur_curves
+addi $a0, $zero, 77         
+addi $a1, $zero, 221  
+jal br_curves
+
+addi $a0, $zero, 8       
+addi $a1, $zero, 152        
+add $t8, $zero, $zero
+jal ul_curves
+addi $a0, $zero, 8        
+addi $a1, $zero, 222  
+jal bl_curves
+addi $a0, $zero, 78         
+addi $a1, $zero, 152     
+jal ur_curves
+addi $a0, $zero, 78         
+addi $a1, $zero, 222  
+jal br_curves
 
 #########################################################
 ### Finally, I'll add the box for Mario and the title ###
 #########################################################
 
+addi $a0, $zero, 176         # Set the X coordinate for the top left corner of the rectangle (in pixels)
+addi $a1, $zero, 56         # Set the Y coordinate for the top left corner of the rectangle (in pixels)
+addi $a2, $zero, 64         # Set the width of the rectangle (in pixels)
+addi $a3, $zero, 64         # Set the height of the rectangle (in pixels)
+add, $t8, $zero, $s4
+jal draw_rect
+
+addi $a0, $zero, 177          # Set the X coordinate for the top left corner of the rectangle (in pixels)
+addi $a1, $zero, 57         # Set the Y coordinate for the top left corner of the rectangle (in pixels)
+addi $a2, $zero, 62         # Set the width of the rectangle (in pixels)
+addi $a3, $zero, 62         # Set the height of the rectangle (in pixels)
+add, $t8, $zero, $zero
+jal draw_rect
+
+j main_jar_start
+
+#######################
+### Other Functions ###
+#######################
 #
 #  The rectangle drawing function
 #
@@ -1630,6 +1539,3 @@ addi $sp, $sp, 4            # move the stack pointer to the new top element
 jr $ra
 
 end_background:
-lw $ra, 0($sp)      # Read return address from the stack
-addi $sp, $sp, 4
-jr $ra  
